@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -12,7 +11,7 @@ import {
   CheckCircle,
   Info,
   Clock,
-  MarkAsRead,
+  CheckCircle2,
   Trash2,
   Settings
 } from "lucide-react";
@@ -222,7 +221,7 @@ const Notifications = () => {
             <div className="flex gap-2">
               {unreadCount > 0 && (
                 <Button variant="outline" onClick={markAllAsRead}>
-                  <CheckCircle className="h-4 w-4 mr-2" />
+                  <CheckCircle2 className="h-4 w-4 mr-2" />
                   Tümünü Okundu İşaretle
                 </Button>
               )}
@@ -250,7 +249,7 @@ const Notifications = () => {
             <Card className="border-yellow-200">
               <CardContent className="p-4">
                 <div className="flex items-center gap-3">
-                  <MarkAsRead className="h-8 w-8 text-yellow-500" />
+                  <CheckCircle2 className="h-8 w-8 text-yellow-500" />
                   <div>
                     <p className="text-sm text-muted-foreground">Okunmamış</p>
                     <p className="text-lg font-bold text-yellow-600">{unreadCount}</p>
@@ -346,7 +345,7 @@ const Notifications = () => {
                                 variant="outline"
                                 onClick={() => markAsRead(notification.id)}
                               >
-                                <CheckCircle className="h-4 w-4 mr-1" />
+                                <CheckCircle2 className="h-4 w-4 mr-1" />
                                 Okundu
                               </Button>
                             )}
