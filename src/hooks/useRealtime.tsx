@@ -3,7 +3,7 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { RealtimeChannel } from "@supabase/supabase-js";
 
-export const useRealtimeData = <T>(
+export const useRealtimeData = <T,>(
   table: string,
   initialData: T[] = []
 ) => {
