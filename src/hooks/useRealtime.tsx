@@ -2,9 +2,12 @@
 import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { RealtimeChannel } from "@supabase/supabase-js";
+import { Database } from "@/integrations/supabase/types";
+
+type TableName = keyof Database['public']['Tables'];
 
 export const useRealtimeData = <T,>(
-  table: string,
+  table: TableName,
   initialData: T[] = []
 ) => {
   const [data, setData] = useState<T[]>(initialData);
