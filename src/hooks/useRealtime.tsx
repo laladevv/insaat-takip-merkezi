@@ -23,7 +23,7 @@ export const useRealtimeData = <T,>(
         if (error) {
           console.error(`Error fetching ${table}:`, error);
         } else {
-          setData(fetchedData || []);
+          setData((fetchedData || []) as T[]);
         }
       } catch (error) {
         console.error(`Error fetching ${table}:`, error);

@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
@@ -14,6 +15,7 @@ const Auth = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
+  const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
@@ -24,8 +26,26 @@ const Auth = () => {
         navigate("/dashboard");
       }
     };
+    
+    // Kaydedilmiş kullanıcı bilgilerini yükle
+    const savedCredentials = localStorage.getItem("rememberedCredentials");
+    if (savedCredentials) {
+      const { email: savedEmail, password: savedPassword } = JSON.parse(savedCredentials);
+      setEmail(savedEmail);
+      setPassword(savedPassword);
+      setRememberMe(true);
+    }
+    
     checkUser();
   }, [navigate]);
+
+  const saveCredentials = (email: string, password: string) => {
+    if (rememberMe) {
+      localStorage.setItem("rememberedCredentials", JSON.stringify({ email, password }));
+    } else {
+      localStorage.removeItem("rememberedCredentials");
+    }
+  };
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,10 +84,15 @@ const Auth = () => {
           });
         }
       } else {
+        saveCredentials(email, password);
         toast({
           title: "Başarılı!",
-          description: "Hesabınız oluşturuldu. E-postanızı kontrol edin.",
+          description: "Hesabınız oluşturuldu. Otomatik giriş yapılıyor...",
         });
+        // Kayıt olduktan sonra otomatik giriş yap
+        setTimeout(() => {
+          handleSignIn(e);
+        }, 1000);
       }
     } catch (error) {
       toast({
@@ -105,9 +130,10 @@ const Auth = () => {
           description: "E-posta veya şifre hatalı.",
         });
       } else {
+        saveCredentials(email, password);
         toast({
           title: "Başarılı!",
-          description: "Giriş yapıldı.",
+          description: "Giriş yapıldı. Yönlendiriliyorsunuz...",
         });
         navigate("/dashboard");
       }
@@ -116,6 +142,42 @@ const Auth = () => {
         variant: "destructive",
         title: "Hata",
         description: "Bir hata oluştu. Lütfen tekrar deneyin.",
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Demo yönetici hesabı ile hızlı giriş
+  const handleAdminLogin = async () => {
+    setEmail("muharremcotur@izoefe.com");
+    setPassword("efenaz55");
+    setLoading(true);
+    
+    try {
+      const { error } = await supabase.auth.signInWithPassword({
+        email: "muharremcotur@izoefe.com",
+        password: "efenaz55",
+      });
+
+      if (error) {
+        toast({
+          variant: "destructive",
+          title: "Yönetici Girişi",
+          description: "Yönetici hesabı henüz oluşturulmamış. Kayıt olun.",
+        });
+      } else {
+        toast({
+          title: "Yönetici Girişi",
+          description: "Yönetici olarak giriş yapıldı!",
+        });
+        navigate("/dashboard");
+      }
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: "Bir hata oluştu.",
       });
     } finally {
       setLoading(false);
@@ -171,6 +233,14 @@ const Auth = () => {
                     />
                   </div>
                 </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="remember" 
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                  />
+                  <Label htmlFor="remember" className="text-sm">Beni Hatırla</Label>
+                </div>
                 <Button 
                   type="submit" 
                   className="w-full bg-gradient-to-r from-red-500 to-blue-500 hover:from-red-600 hover:to-blue-600"
@@ -179,6 +249,20 @@ const Auth = () => {
                   {loading ? "Giriş yapılıyor..." : "Giriş Yap"}
                 </Button>
               </form>
+              
+              <div className="mt-4 pt-4 border-t">
+                <Button 
+                  onClick={handleAdminLogin}
+                  variant="outline"
+                  className="w-full border-red-300 text-red-600 hover:bg-red-50"
+                  disabled={loading}
+                >
+                  👨‍💼 Yönetici Hesabı ile Giriş
+                </Button>
+                <p className="text-xs text-gray-500 mt-2 text-center">
+                  K.Adı: muharremcotur@izoefe.com | Şifre: efenaz55
+                </p>
+              </div>
             </TabsContent>
             
             <TabsContent value="signup">
@@ -229,6 +313,14 @@ const Auth = () => {
                     />
                   </div>
                 </div>
+                <div className="flex items-center space-x-2">
+                  <Checkbox 
+                    id="remember-signup" 
+                    checked={rememberMe}
+                    onCheckedChange={(checked) => setRememberMe(checked as boolean)}
+                  />
+                  <Label htmlFor="remember-signup" className="text-sm">Beni Hatırla</Label>
+                </div>
                 <Button 
                   type="submit" 
                   className="w-full bg-gradient-to-r from-blue-500 to-red-500 hover:from-blue-600 hover:to-red-600"
@@ -237,6 +329,12 @@ const Auth = () => {
                   {loading ? "Kayıt yapılıyor..." : "Kayıt Ol"}
                 </Button>
               </form>
+              
+              <div className="mt-4 pt-4 border-t">
+                <p className="text-xs text-gray-600 text-center">
+                  💡 <strong>Yönetici Hesabı:</strong> muharremcotur@izoefe.com şifresi: efenaz55 ile kayıt olabilirsiniz
+                </p>
+              </div>
             </TabsContent>
           </Tabs>
         </CardContent>

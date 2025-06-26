@@ -20,7 +20,8 @@ import {
   UserPlus,
   LogOut,
   Settings,
-  Bell
+  Bell,
+  Plus
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
 
@@ -40,12 +41,22 @@ const Dashboard = () => {
   }, [user, authLoading, navigate]);
 
   const handleLogout = async () => {
+    // Kaydedilmiş şifreleri temizle
+    localStorage.removeItem("rememberedCredentials");
     await signOut();
     toast({
       title: "Çıkış Yapıldı",
       description: "Başarıyla çıkış yaptınız.",
     });
     navigate("/");
+  };
+
+  const handleQuickAction = (action: string) => {
+    toast({
+      title: "Yönlendiriliyor",
+      description: `${action} sayfasına yönlendiriliyorsunuz...`,
+    });
+    navigate(`/${action.toLowerCase()}`);
   };
 
   if (authLoading || !user) {
@@ -59,13 +70,13 @@ const Dashboard = () => {
     );
   }
 
-  const activeSites = sites.filter((site: any) => site.status === "Aktif").length;
-  const totalPersonnel = personnel.length;
-  const criticalMaterials = materials.filter((material: any) => material.status === "Kritik").length;
-  const todayReports = reports.filter((report: any) => {
+  const activeSites = Array.isArray(sites) ? sites.filter((site: any) => site.status === "Aktif").length : 0;
+  const totalPersonnel = Array.isArray(personnel) ? personnel.length : 0;
+  const criticalMaterials = Array.isArray(materials) ? materials.filter((material: any) => material.status === "Kritik").length : 0;
+  const todayReports = Array.isArray(reports) ? reports.filter((report: any) => {
     const today = new Date().toISOString().split('T')[0];
     return report.date === today;
-  }).length;
+  }).length : 0;
 
   return (
     <SidebarProvider>
@@ -78,17 +89,20 @@ const Dashboard = () => {
               <SidebarTrigger className="text-red-600" />
               <div>
                 <h1 className="text-2xl font-bold text-gray-900">IzoEFE Dashboard</h1>
-                <p className="text-gray-600">Hoş geldiniz, {user.user_metadata?.name || user.email}</p>
+                <p className="text-gray-600">
+                  Hoş geldiniz, {user.user_metadata?.name || user.email}
+                  {user.email === "muharremcotur@izoefe.com" && " (Yönetici)"}
+                </p>
               </div>
             </div>
             <div className="flex items-center gap-4">
               <Badge variant="outline" className="border-red-500 text-red-600">
-                {user.user_metadata?.role || "Personel"}
+                {user.email === "muharremcotur@izoefe.com" ? "Yönetici" : user.user_metadata?.role || "Personel"}
               </Badge>
-              <Button variant="outline" size="sm" onClick={() => navigate("/notifications")}>
+              <Button variant="outline" size="sm" onClick={() => handleQuickAction("notifications")}>
                 <Bell className="h-4 w-4" />
               </Button>
-              <Button variant="outline" size="sm" onClick={() => navigate("/settings")}>
+              <Button variant="outline" size="sm" onClick={() => handleQuickAction("settings")}>
                 <Settings className="h-4 w-4" />
               </Button>
               <Button variant="outline" size="sm" onClick={handleLogout}>
@@ -99,7 +113,7 @@ const Dashboard = () => {
 
           {/* Stats Cards */}
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-            <Card className="border-red-200 hover:shadow-lg transition-shadow">
+            <Card className="border-red-200 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleQuickAction("sites")}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Aktif Şantiyeler</CardTitle>
                 <Building2 className="h-4 w-4 text-red-500" />
@@ -109,12 +123,12 @@ const Dashboard = () => {
                   {sitesLoading ? "..." : activeSites}
                 </div>
                 <p className="text-xs text-muted-foreground">
-                  Toplam {sites.length} şantiye
+                  Toplam {Array.isArray(sites) ? sites.length : 0} şantiye
                 </p>
               </CardContent>
             </Card>
 
-            <Card className="border-blue-200 hover:shadow-lg transition-shadow">
+            <Card className="border-blue-200 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleQuickAction("personnel")}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Toplam Personel</CardTitle>
                 <Users className="h-4 w-4 text-blue-500" />
@@ -129,7 +143,7 @@ const Dashboard = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-red-200 hover:shadow-lg transition-shadow">
+            <Card className="border-red-200 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleQuickAction("materials")}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Kritik Malzemeler</CardTitle>
                 <AlertTriangle className="h-4 w-4 text-red-500" />
@@ -144,7 +158,7 @@ const Dashboard = () => {
               </CardContent>
             </Card>
 
-            <Card className="border-blue-200 hover:shadow-lg transition-shadow">
+            <Card className="border-blue-200 hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleQuickAction("reports")}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">Günlük Raporlar</CardTitle>
                 <FileText className="h-4 w-4 text-blue-500" />
@@ -177,7 +191,7 @@ const Dashboard = () => {
                     <CardTitle className="text-red-600">Son Aktiviteler</CardTitle>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {reports.slice(0, 3).map((report: any, index) => (
+                    {Array.isArray(reports) && reports.slice(0, 3).map((report: any) => (
                       <div key={report.id} className="flex items-center space-x-4">
                         <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                         <div className="flex-1">
@@ -188,7 +202,7 @@ const Dashboard = () => {
                         </div>
                       </div>
                     ))}
-                    {sites.slice(0, 2).map((site: any, index) => (
+                    {Array.isArray(sites) && sites.slice(0, 2).map((site: any) => (
                       <div key={site.id} className="flex items-center space-x-4">
                         <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                         <div className="flex-1">
@@ -199,6 +213,9 @@ const Dashboard = () => {
                         </div>
                       </div>
                     ))}
+                    {(!Array.isArray(reports) || reports.length === 0) && (!Array.isArray(sites) || sites.length === 0) && (
+                      <p className="text-muted-foreground text-center py-4">Henüz aktivite yok</p>
+                    )}
                   </CardContent>
                 </Card>
 
@@ -210,7 +227,7 @@ const Dashboard = () => {
                     <Button 
                       className="w-full justify-start bg-red-500 hover:bg-red-600" 
                       size="lg"
-                      onClick={() => navigate("/sites")}
+                      onClick={() => handleQuickAction("sites")}
                     >
                       <Building2 className="mr-2 h-4 w-4" />
                       Şantiyeleri Görüntüle
@@ -218,7 +235,7 @@ const Dashboard = () => {
                     <Button 
                       className="w-full justify-start bg-blue-500 hover:bg-blue-600" 
                       size="lg"
-                      onClick={() => navigate("/personnel")}
+                      onClick={() => handleQuickAction("personnel")}
                     >
                       <UserPlus className="mr-2 h-4 w-4" />
                       Personel Yönetimi
@@ -226,7 +243,7 @@ const Dashboard = () => {
                     <Button 
                       className="w-full justify-start bg-red-500 hover:bg-red-600" 
                       size="lg"
-                      onClick={() => navigate("/materials")}
+                      onClick={() => handleQuickAction("materials")}
                     >
                       <Package className="mr-2 h-4 w-4" />
                       Malzeme Durumu
@@ -234,7 +251,7 @@ const Dashboard = () => {
                     <Button 
                       className="w-full justify-start bg-blue-500 hover:bg-blue-600" 
                       size="lg"
-                      onClick={() => navigate("/reports")}
+                      onClick={() => handleQuickAction("reports")}
                     >
                       <FileText className="mr-2 h-4 w-4" />
                       Günlük Raporlar
@@ -244,22 +261,27 @@ const Dashboard = () => {
               </div>
             </TabsContent>
 
-            {/* Diğer tab content'ler gerçek verilerle */}
             <TabsContent value="sites">
               <Card className="border-red-200">
-                <CardHeader>
-                  <CardTitle className="text-red-600">Şantiye Yönetimi</CardTitle>
-                  <CardDescription>
-                    Aktif şantiyeleri görüntüleyin ve yönetin
-                  </CardDescription>
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-red-600">Şantiye Yönetimi</CardTitle>
+                    <CardDescription>
+                      Aktif şantiyeleri görüntüleyin ve yönetin
+                    </CardDescription>
+                  </div>
+                  <Button onClick={() => handleQuickAction("sites")} className="bg-red-500 hover:bg-red-600">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Yeni Şantiye
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-4">
                     {sitesLoading ? (
                       <p>Yükleniyor...</p>
-                    ) : sites.length > 0 ? (
+                    ) : Array.isArray(sites) && sites.length > 0 ? (
                       sites.slice(0, 3).map((site: any) => (
-                        <div key={site.id} className="flex items-center justify-between p-4 border border-red-100 rounded-lg">
+                        <div key={site.id} className="flex items-center justify-between p-4 border border-red-100 rounded-lg hover:bg-red-50 transition-colors">
                           <div className="flex-1">
                             <h3 className="font-medium">{site.name}</h3>
                             <p className="text-sm text-muted-foreground">{site.location}</p>
@@ -279,14 +301,166 @@ const Dashboard = () => {
                         </div>
                       ))
                     ) : (
-                      <p className="text-muted-foreground">Henüz şantiye bulunmuyor.</p>
+                      <div className="text-center py-8">
+                        <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-muted-foreground">Henüz şantiye bulunmuyor.</p>
+                        <Button 
+                          onClick={() => handleQuickAction("sites")} 
+                          className="mt-4 bg-red-500 hover:bg-red-600"
+                        >
+                          İlk Şantiyeyi Ekle
+                        </Button>
+                      </div>
                     )}
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
-            {/* Diğer TabContent'ler benzer şekilde real data ile doldurulacak */}
+            <TabsContent value="personnel">
+              <Card className="border-blue-200">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-blue-600">Personel Yönetimi</CardTitle>
+                    <CardDescription>
+                      Şantiye personelini görüntüleyin ve yönetin
+                    </CardDescription>
+                  </div>
+                  <Button onClick={() => handleQuickAction("personnel")} className="bg-blue-500 hover:bg-blue-600">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Yeni Personel
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {personnelLoading ? (
+                      <p>Yükleniyor...</p>
+                    ) : Array.isArray(personnel) && personnel.length > 0 ? (
+                      personnel.slice(0, 3).map((person: any) => (
+                        <div key={person.id} className="flex items-center justify-between p-4 border border-blue-100 rounded-lg hover:bg-blue-50 transition-colors">
+                          <div className="flex-1">
+                            <h3 className="font-medium">{person.name}</h3>
+                            <p className="text-sm text-muted-foreground">{person.role}</p>
+                            {person.phone && (
+                              <p className="text-xs text-muted-foreground">{person.phone}</p>
+                            )}
+                          </div>
+                          <Badge variant={person.status === "Aktif" ? "default" : "secondary"}>
+                            {person.status}
+                          </Badge>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <Users className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-muted-foreground">Henüz personel bulunmuyor.</p>
+                        <Button 
+                          onClick={() => handleQuickAction("personnel")} 
+                          className="mt-4 bg-blue-500 hover:bg-blue-600"
+                        >
+                          İlk Personeli Ekle
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="materials">
+              <Card className="border-red-200">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-red-600">Malzeme Durumu</CardTitle>
+                    <CardDescription>
+                      Şantiye malzemelerini takip edin
+                    </CardDescription>
+                  </div>
+                  <Button onClick={() => handleQuickAction("materials")} className="bg-red-500 hover:bg-red-600">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Yeni Malzeme
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {materialsLoading ? (
+                      <p>Yükleniyor...</p>
+                    ) : Array.isArray(materials) && materials.length > 0 ? (
+                      materials.slice(0, 3).map((material: any) => (
+                        <div key={material.id} className="flex items-center justify-between p-4 border border-red-100 rounded-lg hover:bg-red-50 transition-colors">
+                          <div className="flex-1">
+                            <h3 className="font-medium">{material.name}</h3>
+                            <p className="text-sm text-muted-foreground">{material.quantity} {material.unit}</p>
+                          </div>
+                          <Badge variant={material.status === "Kritik" ? "destructive" : "default"}>
+                            {material.status}
+                          </Badge>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-muted-foreground">Henüz malzeme kaydı bulunmuyor.</p>
+                        <Button 
+                          onClick={() => handleQuickAction("materials")} 
+                          className="mt-4 bg-red-500 hover:bg-red-600"
+                        >
+                          İlk Malzemeyi Ekle
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
+
+            <TabsContent value="reports">
+              <Card className="border-blue-200">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle className="text-blue-600">Günlük Raporlar</CardTitle>
+                    <CardDescription>
+                      Şantiye günlük raporlarını görüntüleyin
+                    </CardDescription>
+                  </div>
+                  <Button onClick={() => handleQuickAction("reports")} className="bg-blue-500 hover:bg-blue-600">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Yeni Rapor
+                  </Button>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-4">
+                    {reportsLoading ? (
+                      <p>Yükleniyor...</p>
+                    ) : Array.isArray(reports) && reports.length > 0 ? (
+                      reports.slice(0, 3).map((report: any) => (
+                        <div key={report.id} className="flex items-center justify-between p-4 border border-blue-100 rounded-lg hover:bg-blue-50 transition-colors">
+                          <div className="flex-1">
+                            <h3 className="font-medium">Günlük Rapor</h3>
+                            <p className="text-sm text-muted-foreground">{new Date(report.date).toLocaleDateString('tr-TR')}</p>
+                            <p className="text-xs text-muted-foreground">{report.work_description?.substring(0, 100)}...</p>
+                          </div>
+                          <Badge variant={report.status === "Onaylandı" ? "default" : "secondary"}>
+                            {report.status}
+                          </Badge>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8">
+                        <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                        <p className="text-muted-foreground">Henüz rapor bulunmuyor.</p>
+                        <Button 
+                          onClick={() => handleQuickAction("reports")} 
+                          className="mt-4 bg-blue-500 hover:bg-blue-600"
+                        >
+                          İlk Raporu Oluştur
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         </main>
       </div>
