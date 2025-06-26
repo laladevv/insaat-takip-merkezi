@@ -90,24 +90,24 @@ const Auth = () => {
 
   // Demo yönetici hesabı ile hızlı giriş
   const handleAdminLogin = async () => {
-    setEmail("muharremcotur@izoefe.com");
+    setEmail("izoarte@gmail.com");
     setPassword("efenaz55");
     setLoading(true);
     
     try {
       const { error } = await supabase.auth.signInWithPassword({
-        email: "muharremcotur@izoefe.com",
+        email: "izoarte@gmail.com",
         password: "efenaz55",
       });
 
       if (error) {
         // Eğer hesap yoksa oluştur
         const { error: signUpError } = await supabase.auth.signUp({
-          email: "muharremcotur@izoefe.com",
+          email: "izoarte@gmail.com",
           password: "efenaz55",
           options: {
             data: { 
-              name: "Muharrem Cotur",
+              name: "IzoArte Yönetici",
               role: "Yönetici"
             }
           }
@@ -127,7 +127,7 @@ const Auth = () => {
           navigate("/dashboard");
         }
       } else {
-        saveCredentials("muharremcotur@izoefe.com", "efenaz55");
+        saveCredentials("izoarte@gmail.com", "efenaz55");
         toast({
           title: "Yönetici Girişi",
           description: "Yönetici olarak giriş yapıldı!",
@@ -214,7 +214,7 @@ const Auth = () => {
               👨‍💼 Yönetici Hesabı ile Giriş
             </Button>
             <p className="text-xs text-gray-500 mt-2 text-center">
-              K.Adı: muharremcotur@izoefe.com | Şifre: efenaz55
+              K.Adı: izoarte@gmail.com | Şifre: efenaz55
             </p>
           </div>
         </CardContent>

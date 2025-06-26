@@ -59,20 +59,20 @@ const Dashboard = () => {
 
       if (error) {
         console.error("Profile fetch error:", error);
-        // Eğer profil yoksa ve email muharremcotur@izoefe.com ise yönetici olarak ayarla
-        if (user.email === "muharremcotur@izoefe.com") {
+        // Eğer profil yoksa ve email izoarte@gmail.com ise yönetici olarak ayarla
+        if (user.email === "izoarte@gmail.com") {
           const { error: insertError } = await supabase
             .from("profiles")
             .insert({
               id: user.id,
-              name: "Muharrem Cotur",
+              name: "IzoArte Yönetici",
               role: "Yönetici"
             });
           
           if (!insertError) {
             setUserProfile({
               id: user.id,
-              name: "Muharrem Cotur",
+              name: "IzoArte Yönetici",
               role: "Yönetici",
               email: user.email
             });
@@ -89,7 +89,7 @@ const Dashboard = () => {
       const userInfo = {
         email: user.email,
         name: profile?.name || user.user_metadata?.name || user.email?.split('@')[0] || "Kullanıcı",
-        role: profile?.role || (user.email === "muharremcotur@izoefe.com" ? "Yönetici" : "Personel")
+        role: profile?.role || (user.email === "izoarte@gmail.com" ? "Yönetici" : "Personel")
       };
       localStorage.setItem("user", JSON.stringify(userInfo));
 
