@@ -46,25 +46,43 @@ const Dashboard = () => {
 
   const fetchStats = async () => {
     try {
+      console.log("Fetching stats...");
+      
       // Şantiyeler
-      const { data: sites } = await supabase
+      const { data: sites, error: sitesError } = await supabase
         .from("sites")
         .select("*");
       
+      if (sitesError) {
+        console.error("Sites error:", sitesError);
+      }
+      
       // Personel
-      const { data: personnel } = await supabase
+      const { data: personnel, error: personnelError } = await supabase
         .from("personnel")
         .select("*");
       
+      if (personnelError) {
+        console.error("Personnel error:", personnelError);
+      }
+      
       // Malzemeler
-      const { data: materials } = await supabase
+      const { data: materials, error: materialsError } = await supabase
         .from("materials")
         .select("*");
       
+      if (materialsError) {
+        console.error("Materials error:", materialsError);
+      }
+      
       // Raporlar
-      const { data: reports } = await supabase
+      const { data: reports, error: reportsError } = await supabase
         .from("daily_reports")
         .select("*");
+      
+      if (reportsError) {
+        console.error("Reports error:", reportsError);
+      }
 
       // Kritik seviyedeki malzemeler
       const criticalMaterials = materials?.filter(m => m.quantity <= m.critical_level) || [];
@@ -73,6 +91,15 @@ const Dashboard = () => {
       const activeSites = sites?.filter(s => s.status === "Aktif") || [];
 
       setStats({
+        totalSites: sites?.length || 0,
+        totalPersonnel: personnel?.length || 0,
+        totalMaterials: materials?.length || 0,
+        totalReports: reports?.length || 0,
+        criticalMaterials: criticalMaterials.length,
+        activeSites: activeSites.length
+      });
+
+      console.log("Stats updated:", {
         totalSites: sites?.length || 0,
         totalPersonnel: personnel?.length || 0,
         totalMaterials: materials?.length || 0,

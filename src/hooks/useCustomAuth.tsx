@@ -44,6 +44,7 @@ export const CustomAuthProvider = ({ children }: { children: React.ReactNode }) 
         });
 
       if (error) {
+        console.error("Authentication error:", error);
         return { success: false, error: "Sistem hatası oluştu" };
       }
 
@@ -67,6 +68,7 @@ export const CustomAuthProvider = ({ children }: { children: React.ReactNode }) 
         return { success: false, error: "Kullanıcı adı veya şifre hatalı" };
       }
     } catch (error) {
+      console.error("Sign in error:", error);
       return { success: false, error: "Bağlantı hatası oluştu" };
     }
   };
