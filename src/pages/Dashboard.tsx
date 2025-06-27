@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
-import { useAuth } from "@/hooks/useAuth";
+import { useCustomAuth } from "@/hooks/useCustomAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { 
   Building2, 
@@ -21,9 +21,8 @@ import {
 } from "lucide-react";
 
 const Dashboard = () => {
-  const { user, loading } = useAuth();
+  const { user, loading } = useCustomAuth();
   const navigate = useNavigate();
-  const [userProfile, setUserProfile] = useState<any>(null);
   const [stats, setStats] = useState({
     totalSites: 0,
     totalPersonnel: 0,
@@ -41,62 +40,9 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (user) {
-      fetchUserProfile();
       fetchStats();
     }
   }, [user]);
-
-  const fetchUserProfile = async () => {
-    if (!user) return;
-
-    try {
-      // Önce profiles tablosundan kullanıcı profilini al
-      const { data: profile, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("id", user.id)
-        .single();
-
-      if (error) {
-        console.error("Profile fetch error:", error);
-        // Eğer profil yoksa ve email izoarte@gmail.com ise yönetici olarak ayarla
-        if (user.email === "izoarte@gmail.com") {
-          const { error: insertError } = await supabase
-            .from("profiles")
-            .insert({
-              id: user.id,
-              name: "IzoArte Yönetici",
-              role: "Yönetici"
-            });
-          
-          if (!insertError) {
-            setUserProfile({
-              id: user.id,
-              name: "IzoArte Yönetici",
-              role: "Yönetici",
-              email: user.email
-            });
-          }
-        }
-      } else {
-        setUserProfile({
-          ...profile,
-          email: user.email
-        });
-      }
-
-      // localStorage'a kullanıcı bilgilerini kaydet
-      const userInfo = {
-        email: user.email,
-        name: profile?.name || user.user_metadata?.name || user.email?.split('@')[0] || "Kullanıcı",
-        role: profile?.role || (user.email === "izoarte@gmail.com" ? "Yönetici" : "Personel")
-      };
-      localStorage.setItem("user", JSON.stringify(userInfo));
-
-    } catch (error) {
-      console.error("Error fetching user profile:", error);
-    }
-  };
 
   const fetchStats = async () => {
     try {
@@ -212,16 +158,14 @@ const Dashboard = () => {
                 <SidebarTrigger className="lg:hidden" />
                 <div>
                   <h1 className="text-3xl font-bold text-gray-900">
-                    Hoş Geldiniz, {userProfile?.name || user.email?.split('@')[0]}!
+                    Hoş Geldiniz, {user.name}!
                   </h1>
                   <p className="text-gray-600 mt-1">
                     IzoEFE Şantiye Yönetim Sistemi Dashboard
                   </p>
-                  {userProfile?.role && (
-                    <Badge variant="outline" className="mt-2 border-red-500 text-red-600">
-                      {userProfile.role}
-                    </Badge>
-                  )}
+                  <Badge variant="outline" className="mt-2 border-red-500 text-red-600">
+                    {user.role}
+                  </Badge>
                 </div>
               </div>
               <div className="flex items-center gap-4">

@@ -4,10 +4,10 @@ import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Building2, Users, Package, FileText, BarChart3, MapPin, Bell, Calendar } from "lucide-react";
-import { useAuth } from "@/hooks/useAuth";
+import { useCustomAuth } from "@/hooks/useCustomAuth";
 
 const Index = () => {
-  const { user, loading } = useAuth();
+  const { user, loading } = useCustomAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -110,8 +110,8 @@ const Index = () => {
           <div className="mt-8 p-4 bg-white/70 rounded-lg max-w-md mx-auto">
             <h3 className="font-semibold text-gray-800 mb-2">🔑 Demo Hesap</h3>
             <p className="text-sm text-gray-600">
-              <strong>Kullanıcı Adı:</strong> muharremcotur@izoefe.com<br />
-              <strong>Şifre:</strong> efenaz55
+              <strong>Kullanıcı Adı:</strong> ozgur<br />
+              <strong>Şifre:</strong> 1234
             </p>
           </div>
         </div>

@@ -7,39 +7,37 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { Building2, Mail, Lock } from "lucide-react";
+import { Building2, User, Lock } from "lucide-react";
+import { useCustomAuth } from "@/hooks/useCustomAuth";
 
 const Auth = () => {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
+  const { user, signIn } = useCustomAuth();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const checkUser = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session) {
-        navigate("/dashboard");
-      }
-    };
-    
+    if (user) {
+      navigate("/dashboard");
+    }
+  }, [user, navigate]);
+
+  useEffect(() => {
     // Kaydedilmiş kullanıcı bilgilerini yükle
     const savedCredentials = localStorage.getItem("rememberedCredentials");
     if (savedCredentials) {
-      const { email: savedEmail, password: savedPassword } = JSON.parse(savedCredentials);
-      setEmail(savedEmail);
+      const { username: savedUsername, password: savedPassword } = JSON.parse(savedCredentials);
+      setUsername(savedUsername);
       setPassword(savedPassword);
       setRememberMe(true);
     }
-    
-    checkUser();
-  }, [navigate]);
+  }, []);
 
-  const saveCredentials = (email: string, password: string) => {
+  const saveCredentials = (username: string, password: string) => {
     if (rememberMe) {
-      localStorage.setItem("rememberedCredentials", JSON.stringify({ email, password }));
+      localStorage.setItem("rememberedCredentials", JSON.stringify({ username, password }));
     } else {
       localStorage.removeItem("rememberedCredentials");
     }
@@ -47,35 +45,32 @@ const Auth = () => {
 
   const handleSignIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
+    if (!username || !password) {
       toast({
         variant: "destructive",
         title: "Hata",
-        description: "E-posta ve şifre gerekli.",
+        description: "Kullanıcı adı ve şifre gerekli.",
       });
       return;
     }
 
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (error) {
-        toast({
-          variant: "destructive",
-          title: "Giriş Hatası",
-          description: "E-posta veya şifre hatalı.",
-        });
-      } else {
-        saveCredentials(email, password);
+      const result = await signIn(username, password);
+      
+      if (result.success) {
+        saveCredentials(username, password);
         toast({
           title: "Başarılı!",
           description: "Giriş yapıldı. Yönlendiriliyorsunuz...",
         });
         navigate("/dashboard");
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Giriş Hatası",
+          description: result.error || "Kullanıcı adı veya şifre hatalı.",
+        });
       }
     } catch (error) {
       toast({
@@ -90,49 +85,26 @@ const Auth = () => {
 
   // Demo yönetici hesabı ile hızlı giriş
   const handleAdminLogin = async () => {
-    setEmail("izoarte@gmail.com");
-    setPassword("efenaz55");
+    setUsername("ozgur");
+    setPassword("1234");
     setLoading(true);
     
     try {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: "izoarte@gmail.com",
-        password: "efenaz55",
-      });
-
-      if (error) {
-        // Eğer hesap yoksa oluştur
-        const { error: signUpError } = await supabase.auth.signUp({
-          email: "izoarte@gmail.com",
-          password: "efenaz55",
-          options: {
-            data: { 
-              name: "IzoArte Yönetici",
-              role: "Yönetici"
-            }
-          }
-        });
-
-        if (signUpError) {
-          toast({
-            variant: "destructive",
-            title: "Hata",
-            description: "Yönetici hesabı oluşturulamadı: " + signUpError.message,
-          });
-        } else {
-          toast({
-            title: "Yönetici Hesabı Oluşturuldu",
-            description: "Yönetici hesabı oluşturuldu ve giriş yapıldı!",
-          });
-          navigate("/dashboard");
-        }
-      } else {
-        saveCredentials("izoarte@gmail.com", "efenaz55");
+      const result = await signIn("ozgur", "1234");
+      
+      if (result.success) {
+        saveCredentials("ozgur", "1234");
         toast({
           title: "Yönetici Girişi",
           description: "Yönetici olarak giriş yapıldı!",
         });
         navigate("/dashboard");
+      } else {
+        toast({
+          variant: "destructive",
+          title: "Hata",
+          description: result.error || "Yönetici girişi başarısız.",
+        });
       }
     } catch (error) {
       toast({
@@ -158,15 +130,15 @@ const Auth = () => {
         <CardContent>
           <form onSubmit={handleSignIn} className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="signin-email">E-posta</Label>
+              <Label htmlFor="signin-username">Kullanıcı Adı</Label>
               <div className="relative">
-                <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
+                <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                 <Input
-                  id="signin-email"
-                  type="email"
-                  placeholder="ornek@email.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  id="signin-username"
+                  type="text"
+                  placeholder="Kullanıcı adınızı girin"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   className="pl-10"
                   required
                 />
@@ -214,7 +186,7 @@ const Auth = () => {
               👨‍💼 Yönetici Hesabı ile Giriş
             </Button>
             <p className="text-xs text-gray-500 mt-2 text-center">
-              K.Adı: izoarte@gmail.com | Şifre: efenaz55
+              K.Adı: ozgur | Şifre: 1234
             </p>
           </div>
         </CardContent>
