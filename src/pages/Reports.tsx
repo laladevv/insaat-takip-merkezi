@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -22,15 +21,12 @@ import {
   XCircle,
   Eye,
   Download,
-  Image
+  Image,
+  Edit,
+  Trash2
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-
-interface User {
-  email: string;
-  role: string;
-  name: string;
-}
+import { useCustomAuth } from "@/hooks/useCustomAuth";
 
 interface Report {
   id: number;
@@ -51,7 +47,9 @@ interface Report {
 }
 
 const Reports = () => {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, loading } = useCustomAuth();
+  const navigate = useNavigate();
+  
   const [reports, setReports] = useState<Report[]>([
     {
       id: 1,
@@ -107,6 +105,8 @@ const Reports = () => {
   ]);
   
   const [isAddReportOpen, setIsAddReportOpen] = useState(false);
+  const [isEditReportOpen, setIsEditReportOpen] = useState(false);
+  const [selectedReport, setSelectedReport] = useState<Report | null>(null);
   const [filterSite, setFilterSite] = useState("all");
   const [filterStatus, setFilterStatus] = useState("all");
   const [filterDate, setFilterDate] = useState("");
@@ -122,17 +122,12 @@ const Reports = () => {
     safety: "",
     issues: ""
   });
-  
-  const navigate = useNavigate();
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    } else {
-      navigate("/");
+    if (!loading && !user) {
+      navigate("/auth");
     }
-  }, [navigate]);
+  }, [user, loading, navigate]);
 
   const sites = ["İstanbul Konut Projesi", "Ankara Plaza", "İzmir Rezidans"];
   const weatherOptions = ["Güneşli", "Bulutlu", "Yağmurlu", "Karlı", "Rüzgarlı"];
@@ -145,6 +140,20 @@ const Reports = () => {
     return matchesSite && matchesStatus && matchesDate;
   });
 
+  const resetForm = () => {
+    setNewReport({
+      title: "",
+      site: "",
+      weather: "",
+      workersPresent: "",
+      workersAbsent: "",
+      workDescription: "",
+      materials: "",
+      safety: "",
+      issues: ""
+    });
+  };
+
   const handleAddReport = () => {
     if (!newReport.title || !newReport.site || !newReport.workDescription) {
       toast({
@@ -156,7 +165,7 @@ const Reports = () => {
     }
 
     const report: Report = {
-      id: reports.length + 1,
+      id: Math.max(...reports.map(r => r.id)) + 1,
       title: newReport.title,
       date: new Date().toISOString().split('T')[0],
       site: newReport.site,
@@ -174,23 +183,77 @@ const Reports = () => {
     };
 
     setReports([...reports, report]);
-    setNewReport({
-      title: "",
-      site: "",
-      weather: "",
-      workersPresent: "",
-      workersAbsent: "",
-      workDescription: "",
-      materials: "",
-      safety: "",
-      issues: ""
-    });
+    resetForm();
     setIsAddReportOpen(false);
     
     toast({
       title: "Başarılı",
       description: "Günlük rapor başarıyla oluşturuldu.",
     });
+  };
+
+  const handleEditReport = (report: Report) => {
+    setSelectedReport(report);
+    setNewReport({
+      title: report.title,
+      site: report.site,
+      weather: report.weather,
+      workersPresent: report.workersPresent.toString(),
+      workersAbsent: report.workersAbsent.toString(),
+      workDescription: report.workDescription,
+      materials: report.materials,
+      safety: report.safety,
+      issues: report.issues
+    });
+    setIsEditReportOpen(true);
+  };
+
+  const handleUpdateReport = () => {
+    if (!selectedReport || !newReport.title || !newReport.site || !newReport.workDescription) {
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: "Lütfen zorunlu alanları doldurun.",
+      });
+      return;
+    }
+
+    const updatedReports = reports.map(report => 
+      report.id === selectedReport.id 
+        ? { 
+            ...report, 
+            title: newReport.title,
+            site: newReport.site,
+            weather: newReport.weather,
+            workersPresent: parseInt(newReport.workersPresent) || 0,
+            workersAbsent: parseInt(newReport.workersAbsent) || 0,
+            workDescription: newReport.workDescription,
+            materials: newReport.materials,
+            safety: newReport.safety,
+            issues: newReport.issues || "Yok"
+          }
+        : report
+    );
+
+    setReports(updatedReports);
+    setIsEditReportOpen(false);
+    setSelectedReport(null);
+    resetForm();
+
+    toast({
+      title: "Başarılı",
+      description: "Rapor bilgileri güncellendi.",
+    });
+  };
+
+  const handleDeleteReport = (id: number) => {
+    if (window.confirm("Bu raporu silmek istediğinizden emin misiniz?")) {
+      setReports(reports.filter(report => report.id !== id));
+      toast({
+        title: "Başarılı",
+        description: "Rapor başarıyla silindi.",
+      });
+    }
   };
 
   const handleApproveReport = (id: number) => {
@@ -213,8 +276,40 @@ const Reports = () => {
     });
   };
 
+  const handleViewReport = (report: Report) => {
+    toast({
+      title: "Rapor Detayları",
+      description: `${report.title} - ${report.workDescription.substring(0, 50)}...`,
+    });
+  };
+
+  const handleDownloadReport = (report: Report) => {
+    toast({
+      title: "İndiriliyor",
+      description: `${report.title} raporu indiriliyor...`,
+    });
+  };
+
+  const handleViewPhotos = (report: Report) => {
+    toast({
+      title: "Fotoğraflar",
+      description: `${report.title} için ${report.photos.length} fotoğraf bulundu.`,
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <FileText className="h-12 w-12 text-red-600 mx-auto mb-4 animate-pulse" />
+          <p>Yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!user) {
-    return <div>Yükleniyor...</div>;
+    return null;
   }
 
   return (
@@ -355,7 +450,10 @@ const Reports = () => {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsAddReportOpen(false)}>
+                  <Button variant="outline" onClick={() => {
+                    setIsAddReportOpen(false);
+                    resetForm();
+                  }}>
                     İptal
                   </Button>
                   <Button onClick={handleAddReport} className="bg-red-500 hover:bg-red-600">
@@ -563,17 +661,21 @@ const Reports = () => {
                   )}
 
                   {/* Action Buttons */}
-                  <div className="flex gap-2 pt-2">
-                    <Button size="sm" variant="outline">
+                  <div className="flex flex-wrap gap-2 pt-2">
+                    <Button size="sm" variant="outline" onClick={() => handleViewReport(report)}>
                       <Eye className="h-4 w-4 mr-1" />
                       Detay
                     </Button>
-                    <Button size="sm" variant="outline">
+                    <Button size="sm" variant="outline" onClick={() => handleEditReport(report)}>
+                      <Edit className="h-4 w-4 mr-1" />
+                      Düzenle
+                    </Button>
+                    <Button size="sm" variant="outline" onClick={() => handleDownloadReport(report)}>
                       <Download className="h-4 w-4 mr-1" />
                       İndir
                     </Button>
                     {report.photos.length > 0 && (
-                      <Button size="sm" variant="outline">
+                      <Button size="sm" variant="outline" onClick={() => handleViewPhotos(report)}>
                         <Image className="h-4 w-4 mr-1" />
                         Fotoğraflar ({report.photos.length})
                       </Button>
@@ -598,11 +700,152 @@ const Reports = () => {
                         </Button>
                       </>
                     )}
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                      onClick={() => handleDeleteReport(report.id)}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
                   </div>
                 </CardContent>
               </Card>
             ))}
           </div>
+
+          {/* Edit Dialog */}
+          <Dialog open={isEditReportOpen} onOpenChange={setIsEditReportOpen}>
+            <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+              <DialogHeader>
+                <DialogTitle>Rapor Düzenle</DialogTitle>
+                <DialogDescription>
+                  Rapor bilgilerini güncelleyin
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-reportTitle">Rapor Başlığı *</Label>
+                  <Input
+                    id="edit-reportTitle"
+                    value={newReport.title}
+                    onChange={(e) => setNewReport({...newReport, title: e.target.value})}
+                    placeholder="Örn: Günlük Rapor - 25.06.2024"
+                  />
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-reportSite">Şantiye *</Label>
+                    <Select value={newReport.site} onValueChange={(value) => setNewReport({...newReport, site: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Şantiye seçin" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {sites.map((site) => (
+                          <SelectItem key={site} value={site}>{site}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-weather">Hava Durumu</Label>
+                    <Select value={newReport.weather} onValueChange={(value) => setNewReport({...newReport, weather: value})}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Hava durumu" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {weatherOptions.map((weather) => (
+                          <SelectItem key={weather} value={weather}>{weather}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </div>
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-workersPresent">Mevcut İşçi Sayısı</Label>
+                    <Input
+                      id="edit-workersPresent"
+                      type="number"
+                      value={newReport.workersPresent}
+                      onChange={(e) => setNewReport({...newReport, workersPresent: e.target.value})}
+                      placeholder="42"
+                    />
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-workersAbsent">Devamsız İşçi Sayısı</Label>
+                    <Input
+                      id="edit-workersAbsent"
+                      type="number"
+                      value={newReport.workersAbsent}
+                      onChange={(e) => setNewReport({...newReport, workersAbsent: e.target.value})}
+                      placeholder="3"
+                    />
+                  </div>
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-workDescription">Yapılan İşler *</Label>
+                  <Textarea
+                    id="edit-workDescription"
+                    value={newReport.workDescription}
+                    onChange={(e) => setNewReport({...newReport, workDescription: e.target.value})}
+                    placeholder="Bugün yapılan işleri detaylı olarak açıklayın..."
+                    rows={4}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-materials">Kullanılan Malzemeler</Label>
+                  <Textarea
+                    id="edit-materials"
+                    value={newReport.materials}
+                    onChange={(e) => setNewReport({...newReport, materials: e.target.value})}
+                    placeholder="Bugün kullanılan malzemeleri listeleyin..."
+                    rows={3}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-safety">Güvenlik Durumu</Label>
+                  <Textarea
+                    id="edit-safety"
+                    value={newReport.safety}
+                    onChange={(e) => setNewReport({...newReport, safety: e.target.value})}
+                    placeholder="Güvenlik durumu ve alınan önlemler..."
+                    rows={3}
+                  />
+                </div>
+                
+                <div className="space-y-2">
+                  <Label htmlFor="edit-issues">Sorunlar ve Gecikmeler</Label>
+                  <Textarea
+                    id="edit-issues"
+                    value={newReport.issues}
+                    onChange={(e) => setNewReport({...newReport, issues: e.target.value})}
+                    placeholder="Yaşanan sorunlar, gecikmeler veya dikkat edilmesi gerekenler..."
+                    rows={3}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => {
+                  setIsEditReportOpen(false);
+                  setSelectedReport(null);
+                  resetForm();
+                }}>
+                  İptal
+                </Button>
+                <Button onClick={handleUpdateReport} className="bg-red-500 hover:bg-red-600">
+                  Güncelle
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {filteredReports.length === 0 && (
             <Card className="text-center py-12">
