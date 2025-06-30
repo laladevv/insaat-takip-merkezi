@@ -29,12 +29,7 @@ import {
 } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-
-interface User {
-  email: string;
-  role: string;
-  name: string;
-}
+import { useCustomAuth } from "@/hooks/useCustomAuth";
 
 // Rol bazlı menü öğeleri
 const getMenuItems = (role: string) => {
@@ -109,19 +104,16 @@ const getMenuItems = (role: string) => {
 };
 
 export function AppSidebar() {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, signOut } = useCustomAuth();
   const navigate = useNavigate();
 
-  useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-  }, []);
-
   const handleLogout = () => {
-    localStorage.removeItem("user");
-    navigate("/");
+    signOut();
+    navigate("/auth");
+  };
+
+  const handleNavigation = (url: string) => {
+    navigate(url);
   };
 
   const menuItems = user ? getMenuItems(user.role) : [];
@@ -148,13 +140,11 @@ export function AppSidebar() {
               {menuItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton 
-                    asChild 
-                    className="hover:bg-red-50 hover:text-red-600 data-[state=open]:bg-red-100"
+                    onClick={() => handleNavigation(item.url)}
+                    className="hover:bg-red-50 hover:text-red-600 data-[state=open]:bg-red-100 cursor-pointer"
                   >
-                    <a href={item.url} className="flex items-center gap-3">
-                      <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
-                    </a>
+                    <item.icon className="h-4 w-4" />
+                    <span>{item.title}</span>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
               ))}
