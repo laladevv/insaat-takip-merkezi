@@ -113,6 +113,14 @@ const Dashboard = () => {
     }
   };
 
+  const handleNavigateToPage = (path: string) => {
+    navigate(path);
+  };
+
+  const handleRefreshStats = () => {
+    fetchStats();
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -134,42 +142,48 @@ const Dashboard = () => {
       value: stats.totalSites,
       icon: Building2,
       color: "text-blue-600",
-      bgColor: "bg-blue-50"
+      bgColor: "bg-blue-50",
+      onClick: () => handleNavigateToPage("/sites")
     },
     {
       title: "Aktif Şantiye",
       value: stats.activeSites,
       icon: CheckCircle2,
       color: "text-green-600",
-      bgColor: "bg-green-50"
+      bgColor: "bg-green-50",
+      onClick: () => handleNavigateToPage("/sites")
     },
     {
       title: "Toplam Personel",
       value: stats.totalPersonnel,
       icon: Users,
       color: "text-purple-600",
-      bgColor: "bg-purple-50"
+      bgColor: "bg-purple-50",
+      onClick: () => handleNavigateToPage("/personnel")
     },
     {
       title: "Toplam Malzeme",
       value: stats.totalMaterials,
       icon: Package,
       color: "text-orange-600",
-      bgColor: "bg-orange-50"
+      bgColor: "bg-orange-50",
+      onClick: () => handleNavigateToPage("/materials")
     },
     {
       title: "Günlük Rapor",
       value: stats.totalReports,
       icon: FileText,
       color: "text-cyan-600",
-      bgColor: "bg-cyan-50"
+      bgColor: "bg-cyan-50",
+      onClick: () => handleNavigateToPage("/reports")
     },
     {
       title: "Kritik Malzeme",
       value: stats.criticalMaterials,
       icon: AlertTriangle,
       color: "text-red-600",
-      bgColor: "bg-red-50"
+      bgColor: "bg-red-50",
+      onClick: () => handleNavigateToPage("/materials")
     }
   ];
 
@@ -199,7 +213,16 @@ const Dashboard = () => {
                 <Button 
                   variant="outline" 
                   size="sm"
-                  onClick={() => navigate("/notifications")}
+                  onClick={handleRefreshStats}
+                  className="hover:bg-gray-100"
+                >
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  Yenile
+                </Button>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => handleNavigateToPage("/notifications")}
                   className="relative"
                 >
                   <Bell className="h-4 w-4" />
@@ -215,7 +238,11 @@ const Dashboard = () => {
             {/* Quick Stats */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
               {quickStats.map((stat, index) => (
-                <Card key={index} className="hover:shadow-md transition-shadow">
+                <Card 
+                  key={index} 
+                  className="hover:shadow-md transition-shadow cursor-pointer"
+                  onClick={stat.onClick}
+                >
                   <CardContent className="p-6">
                     <div className="flex items-center justify-between">
                       <div>
@@ -233,7 +260,7 @@ const Dashboard = () => {
 
             {/* Action Cards */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/sites")}>
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleNavigateToPage("/sites")}>
                 <CardHeader className="text-center">
                   <Building2 className="h-12 w-12 mx-auto mb-4 text-red-600" />
                   <CardTitle className="text-lg">Şantiye Yönetimi</CardTitle>
@@ -245,7 +272,7 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/personnel")}>
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleNavigateToPage("/personnel")}>
                 <CardHeader className="text-center">
                   <Users className="h-12 w-12 mx-auto mb-4 text-blue-600" />
                   <CardTitle className="text-lg">Personel Yönetimi</CardTitle>
@@ -257,7 +284,7 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/materials")}>
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleNavigateToPage("/materials")}>
                 <CardHeader className="text-center">
                   <Package className="h-12 w-12 mx-auto mb-4 text-orange-600" />
                   <CardTitle className="text-lg">Malzeme Yönetimi</CardTitle>
@@ -269,7 +296,7 @@ const Dashboard = () => {
                 </CardContent>
               </Card>
 
-              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => navigate("/reports")}>
+              <Card className="hover:shadow-lg transition-shadow cursor-pointer" onClick={() => handleNavigateToPage("/reports")}>
                 <CardHeader className="text-center">
                   <FileText className="h-12 w-12 mx-auto mb-4 text-green-600" />
                   <CardTitle className="text-lg">Günlük Raporlar</CardTitle>
@@ -297,7 +324,7 @@ const Dashboard = () => {
                     <Button 
                       variant="link" 
                       className="text-red-600 p-0 ml-2 h-auto"
-                      onClick={() => navigate("/materials")}
+                      onClick={() => handleNavigateToPage("/materials")}
                     >
                       Hemen kontrol edin →
                     </Button>

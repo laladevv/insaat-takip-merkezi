@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -23,6 +22,7 @@ import {
   Search
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
+import { useCustomAuth } from "@/hooks/useCustomAuth";
 
 interface User {
   email: string;
@@ -44,7 +44,7 @@ interface Personnel {
 }
 
 const Personnel = () => {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, loading } = useCustomAuth();
   const [personnel, setPersonnel] = useState<Personnel[]>([
     {
       id: 1,
@@ -97,6 +97,8 @@ const Personnel = () => {
   ]);
   
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedPersonnel, setSelectedPersonnel] = useState<Personnel | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterRole, setFilterRole] = useState("all");
   const [filterSite, setFilterSite] = useState("all");
@@ -113,13 +115,10 @@ const Personnel = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    } else {
-      navigate("/");
+    if (!loading && !user) {
+      navigate("/auth");
     }
-  }, [navigate]);
+  }, [user, loading, navigate]);
 
   const roles = ["Şantiye Şefi", "Mimar", "İnşaat Mühendisi", "İşçi", "Elektrikçi", "Tesisatçı"];
   const sites = ["İstanbul Konut Projesi", "Ankara Plaza", "İzmir Rezidans"];
@@ -133,6 +132,18 @@ const Personnel = () => {
     return matchesSearch && matchesRole && matchesSite;
   });
 
+  const resetForm = () => {
+    setNewPersonnel({
+      name: "",
+      email: "",
+      phone: "",
+      role: "",
+      site: "",
+      tcno: "",
+      salary: ""
+    });
+  };
+
   const handleAddPersonnel = () => {
     if (!newPersonnel.name || !newPersonnel.email || !newPersonnel.role || !newPersonnel.site) {
       toast({
@@ -144,7 +155,7 @@ const Personnel = () => {
     }
 
     const person: Personnel = {
-      id: personnel.length + 1,
+      id: Math.max(...personnel.map(p => p.id)) + 1,
       name: newPersonnel.name,
       email: newPersonnel.email,
       phone: newPersonnel.phone,
@@ -157,15 +168,7 @@ const Personnel = () => {
     };
 
     setPersonnel([...personnel, person]);
-    setNewPersonnel({
-      name: "",
-      email: "",
-      phone: "",
-      role: "",
-      site: "",
-      tcno: "",
-      salary: ""
-    });
+    resetForm();
     setIsAddDialogOpen(false);
     
     toast({
@@ -174,16 +177,79 @@ const Personnel = () => {
     });
   };
 
-  const handleDeletePersonnel = (id: number) => {
-    setPersonnel(personnel.filter(person => person.id !== id));
+  const handleEditPersonnel = (person: Personnel) => {
+    setSelectedPersonnel(person);
+    setNewPersonnel({
+      name: person.name,
+      email: person.email,
+      phone: person.phone,
+      role: person.role,
+      site: person.site,
+      tcno: person.tcno,
+      salary: person.salary.toString()
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdatePersonnel = () => {
+    if (!selectedPersonnel || !newPersonnel.name || !newPersonnel.email || !newPersonnel.role || !newPersonnel.site) {
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: "Lütfen zorunlu alanları doldurun.",
+      });
+      return;
+    }
+
+    const updatedPersonnel = personnel.map(person => 
+      person.id === selectedPersonnel.id 
+        ? { 
+            ...person, 
+            name: newPersonnel.name,
+            email: newPersonnel.email,
+            phone: newPersonnel.phone,
+            role: newPersonnel.role,
+            site: newPersonnel.site,
+            tcno: newPersonnel.tcno,
+            salary: parseInt(newPersonnel.salary) || 0
+          }
+        : person
+    );
+
+    setPersonnel(updatedPersonnel);
+    setIsEditDialogOpen(false);
+    setSelectedPersonnel(null);
+    resetForm();
+
     toast({
       title: "Başarılı",
-      description: "Personel başarıyla silindi.",
+      description: "Personel bilgileri güncellendi.",
     });
   };
 
+  const handleDeletePersonnel = (id: number) => {
+    if (window.confirm("Bu personeli silmek istediğinizden emin misiniz?")) {
+      setPersonnel(personnel.filter(person => person.id !== id));
+      toast({
+        title: "Başarılı",
+        description: "Personel başarıyla silindi.",
+      });
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Users className="h-12 w-12 text-red-600 mx-auto mb-4 animate-pulse" />
+          <p>Yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!user) {
-    return <div>Yükleniyor...</div>;
+    return null;
   }
 
   return (
@@ -291,7 +357,10 @@ const Personnel = () => {
                   </div>
                 </div>
                 <DialogFooter>
-                  <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
+                  <Button variant="outline" onClick={() => {
+                    setIsAddDialogOpen(false);
+                    resetForm();
+                  }}>
                     İptal
                   </Button>
                   <Button onClick={handleAddPersonnel} className="bg-red-500 hover:bg-red-600">
@@ -403,7 +472,12 @@ const Personnel = () => {
 
                   {/* Action Buttons */}
                   <div className="flex gap-2 pt-2">
-                    <Button size="sm" variant="outline" className="flex-1">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => handleEditPersonnel(person)}
+                    >
                       <Edit className="h-4 w-4 mr-1" />
                       Düzenle
                     </Button>
@@ -420,6 +494,107 @@ const Personnel = () => {
               </Card>
             ))}
           </div>
+
+          {/* Edit Dialog */}
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Personel Düzenle</DialogTitle>
+                <DialogDescription>
+                  Personel bilgilerini güncelleyin
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                {/* ... keep existing code (form fields identical to add dialog) */}
+                <div className="space-y-2">
+                  <Label htmlFor="edit-name">Ad Soyad *</Label>
+                  <Input
+                    id="edit-name"
+                    value={newPersonnel.name}
+                    onChange={(e) => setNewPersonnel({...newPersonnel, name: e.target.value})}
+                    placeholder="Örn: Mehmet Çelik"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-email">Email *</Label>
+                  <Input
+                    id="edit-email"
+                    type="email"
+                    value={newPersonnel.email}
+                    onChange={(e) => setNewPersonnel({...newPersonnel, email: e.target.value})}
+                    placeholder="ornek@email.com"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-phone">Telefon</Label>
+                  <Input
+                    id="edit-phone"
+                    value={newPersonnel.phone}
+                    onChange={(e) => setNewPersonnel({...newPersonnel, phone: e.target.value})}
+                    placeholder="0532 123 45 67"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-tcno">TC Kimlik No</Label>
+                  <Input
+                    id="edit-tcno"
+                    value={newPersonnel.tcno}
+                    onChange={(e) => setNewPersonnel({...newPersonnel, tcno: e.target.value})}
+                    placeholder="12345678901"
+                    maxLength={11}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-role">Pozisyon *</Label>
+                  <Select value={newPersonnel.role} onValueChange={(value) => setNewPersonnel({...newPersonnel, role: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pozisyon seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {roles.map((role) => (
+                        <SelectItem key={role} value={role}>{role}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-site">Şantiye *</Label>
+                  <Select value={newPersonnel.site} onValueChange={(value) => setNewPersonnel({...newPersonnel, site: value})}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Şantiye seçin" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {sites.map((site) => (
+                        <SelectItem key={site} value={site}>{site}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-salary">Maaş (TL)</Label>
+                  <Input
+                    id="edit-salary"
+                    type="number"
+                    value={newPersonnel.salary}
+                    onChange={(e) => setNewPersonnel({...newPersonnel, salary: e.target.value})}
+                    placeholder="30000"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => {
+                  setIsEditDialogOpen(false);
+                  setSelectedPersonnel(null);
+                  resetForm();
+                }}>
+                  İptal
+                </Button>
+                <Button onClick={handleUpdatePersonnel} className="bg-red-500 hover:bg-red-600">
+                  Güncelle
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
 
           {filteredPersonnel.length === 0 && (
             <Card className="text-center py-12">

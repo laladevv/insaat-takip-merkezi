@@ -18,15 +18,11 @@ import {
   Plus,
   Edit,
   Trash2,
-  Eye
+  Eye,
+  Search
 } from "lucide-react";
 import { toast } from "@/hooks/use-toast";
-
-interface User {
-  email: string;
-  role: string;
-  name: string;
-}
+import { useCustomAuth } from "@/hooks/useCustomAuth";
 
 interface Site {
   id: number;
@@ -43,7 +39,7 @@ interface Site {
 }
 
 const Sites = () => {
-  const [user, setUser] = useState<User | null>(null);
+  const { user, loading } = useCustomAuth();
   const [sites, setSites] = useState<Site[]>([
     {
       id: 1,
@@ -87,6 +83,9 @@ const Sites = () => {
   ]);
   
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedSite, setSelectedSite] = useState<Site | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
   const [newSite, setNewSite] = useState({
     name: "",
     location: "",
@@ -100,13 +99,16 @@ const Sites = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    const savedUser = localStorage.getItem("user");
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    } else {
-      navigate("/");
+    if (!loading && !user) {
+      navigate("/auth");
     }
-  }, [navigate]);
+  }, [user, loading, navigate]);
+
+  const filteredSites = sites.filter(site => 
+    site.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    site.location.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    site.manager.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleAddSite = () => {
     if (!newSite.name || !newSite.location) {
@@ -119,7 +121,7 @@ const Sites = () => {
     }
 
     const site: Site = {
-      id: sites.length + 1,
+      id: Math.max(...sites.map(s => s.id)) + 1,
       name: newSite.name,
       location: newSite.location,
       address: newSite.address,
@@ -150,16 +152,94 @@ const Sites = () => {
     });
   };
 
-  const handleDeleteSite = (id: number) => {
-    setSites(sites.filter(site => site.id !== id));
+  const handleEditSite = (site: Site) => {
+    setSelectedSite(site);
+    setNewSite({
+      name: site.name,
+      location: site.location,
+      address: site.address,
+      description: site.description,
+      startDate: site.startDate,
+      endDate: site.endDate,
+      manager: site.manager
+    });
+    setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateSite = () => {
+    if (!selectedSite || !newSite.name || !newSite.location) {
+      toast({
+        variant: "destructive",
+        title: "Hata",
+        description: "Lütfen zorunlu alanları doldurun.",
+      });
+      return;
+    }
+
+    const updatedSites = sites.map(site => 
+      site.id === selectedSite.id 
+        ? { 
+            ...site, 
+            name: newSite.name,
+            location: newSite.location,
+            address: newSite.address,
+            description: newSite.description,
+            startDate: newSite.startDate,
+            endDate: newSite.endDate,
+            manager: newSite.manager || "Atanmadı"
+          }
+        : site
+    );
+
+    setSites(updatedSites);
+    setIsEditDialogOpen(false);
+    setSelectedSite(null);
+    setNewSite({
+      name: "",
+      location: "",
+      address: "",
+      description: "",
+      startDate: "",
+      endDate: "",
+      manager: ""
+    });
+
     toast({
       title: "Başarılı",
-      description: "Şantiye başarıyla silindi.",
+      description: "Şantiye bilgileri güncellendi.",
     });
   };
 
+  const handleDeleteSite = (id: number) => {
+    if (window.confirm("Bu şantiyeyi silmek istediğinizden emin misiniz?")) {
+      setSites(sites.filter(site => site.id !== id));
+      toast({
+        title: "Başarılı",
+        description: "Şantiye başarıyla silindi.",
+      });
+    }
+  };
+
+  const handleViewSite = (site: Site) => {
+    toast({
+      title: "Şantiye Detayları",
+      description: `${site.name} - ${site.description}`,
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Building2 className="h-12 w-12 text-red-600 mx-auto mb-4 animate-pulse" />
+          <p>Yükleniyor...</p>
+        </div>
+      </div>
+    );
+  }
+
   if (!user) {
-    return <div>Yükleniyor...</div>;
+    return null;
   }
 
   return (
@@ -271,9 +351,24 @@ const Sites = () => {
             </Dialog>
           </div>
 
+          {/* Search */}
+          <Card className="mb-6">
+            <CardContent className="p-4">
+              <div className="flex items-center gap-2">
+                <Search className="h-4 w-4 text-gray-400" />
+                <Input
+                  placeholder="Şantiye ara..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="flex-1"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
           {/* Sites Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-            {sites.map((site) => (
+            {filteredSites.map((site) => (
               <Card key={site.id} className="border-red-200 hover:shadow-lg transition-shadow">
                 <CardHeader>
                   <div className="flex justify-between items-start">
@@ -329,11 +424,21 @@ const Sites = () => {
 
                   {/* Action Buttons */}
                   <div className="flex gap-2 pt-2">
-                    <Button size="sm" variant="outline" className="flex-1">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => handleViewSite(site)}
+                    >
                       <Eye className="h-4 w-4 mr-1" />
                       Detay
                     </Button>
-                    <Button size="sm" variant="outline" className="flex-1">
+                    <Button 
+                      size="sm" 
+                      variant="outline" 
+                      className="flex-1"
+                      onClick={() => handleEditSite(site)}
+                    >
                       <Edit className="h-4 w-4 mr-1" />
                       Düzenle
                     </Button>
@@ -350,6 +455,105 @@ const Sites = () => {
               </Card>
             ))}
           </div>
+
+          {/* Edit Dialog */}
+          <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+            <DialogContent className="max-w-md">
+              <DialogHeader>
+                <DialogTitle>Şantiye Düzenle</DialogTitle>
+                <DialogDescription>
+                  Şantiye bilgilerini güncelleyin
+                </DialogDescription>
+              </DialogHeader>
+              <div className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="edit-name">Şantiye Adı *</Label>
+                  <Input
+                    id="edit-name"
+                    value={newSite.name}
+                    onChange={(e) => setNewSite({...newSite, name: e.target.value})}
+                    placeholder="Örn: İstanbul Konut Projesi"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-location">Konum *</Label>
+                  <Input
+                    id="edit-location"
+                    value={newSite.location}
+                    onChange={(e) => setNewSite({...newSite, location: e.target.value})}
+                    placeholder="Örn: Kadıköy, İstanbul"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-address">Adres</Label>
+                  <Textarea
+                    id="edit-address"
+                    value={newSite.address}
+                    onChange={(e) => setNewSite({...newSite, address: e.target.value})}
+                    placeholder="Detaylı adres bilgisi"
+                    rows={3}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-manager">Şantiye Şefi</Label>
+                  <Input
+                    id="edit-manager"
+                    value={newSite.manager}
+                    onChange={(e) => setNewSite({...newSite, manager: e.target.value})}
+                    placeholder="Şantiye şefi adı"
+                  />
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-startDate">Başlangıç Tarihi</Label>
+                    <Input
+                      id="edit-startDate"
+                      type="date"
+                      value={newSite.startDate}
+                      onChange={(e) => setNewSite({...newSite, startDate: e.target.value})}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="edit-endDate">Bitiş Tarihi</Label>
+                    <Input
+                      id="edit-endDate"
+                      type="date"
+                      value={newSite.endDate}
+                      onChange={(e) => setNewSite({...newSite, endDate: e.target.value})}
+                    />
+                  </div>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="edit-description">Açıklama</Label>
+                  <Textarea
+                    id="edit-description"
+                    value={newSite.description}
+                    onChange={(e) => setNewSite({...newSite, description: e.target.value})}
+                    placeholder="Proje açıklaması"
+                    rows={3}
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                  İptal
+                </Button>
+                <Button onClick={handleUpdateSite} className="bg-red-500 hover:bg-red-600">
+                  Güncelle
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+
+          {filteredSites.length === 0 && (
+            <Card className="text-center py-12">
+              <CardContent>
+                <Building2 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-lg font-medium text-gray-900 mb-2">Şantiye bulunamadı</h3>
+                <p className="text-gray-500">Arama kriterlerinize uygun şantiye bulunmuyor.</p>
+              </CardContent>
+            </Card>
+          )}
         </main>
       </div>
     </SidebarProvider>
