@@ -12,7 +12,8 @@ import {
   BarChart3,
   MapPin,
   UserCheck,
-  LogOut
+  LogOut,
+  UserPlus
 } from "lucide-react";
 
 import {
@@ -89,13 +90,20 @@ const getMenuItems = (role: string) => {
     }
   ];
 
+  // Kullanıcı Yönetimi menü öğesi
+  const userManagementItem = {
+    title: "Kullanıcı Yönetimi",
+    url: "/user-management", 
+    icon: UserPlus,
+  };
+
   switch (role) {
     case "Yönetici":
-      return [...baseItems, ...allItems];
+      return [...baseItems, ...allItems, userManagementItem];
     case "Müdür":
-      return [...baseItems, ...allItems.slice(0, 7)]; // Ayarlar hariç
+      return [...baseItems, ...allItems.slice(0, 7), userManagementItem]; // Ayarlar hariç
     case "Şantiye Şefi":
-      return [...baseItems, allItems[2], allItems[3], allItems[4], allItems[7]]; // Malzeme, Raporlar, Harita, Bildirimler
+      return [...baseItems, allItems[2], allItems[3], allItems[4], allItems[7], userManagementItem]; // Malzeme, Raporlar, Harita, Bildirimler + Kullanıcı Yönetimi
     case "Personel":
       return [...baseItems, allItems[3], allItems[7]]; // Sadece Raporlar ve Bildirimler
     default:
