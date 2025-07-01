@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,6 +40,58 @@ import { useCustomAuth } from "@/hooks/useCustomAuth";
 import { useRealtimeData } from "@/hooks/useRealtime";
 import { supabase } from "@/integrations/supabase/client";
 
+// Type definitions for database tables
+interface Site {
+  id: string;
+  name: string;
+  location: string;
+  status: string;
+  progress: number;
+  manager_id?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Personnel {
+  id: string;
+  user_id?: string;
+  name: string;
+  role: string;
+  site_id?: string;
+  status: string;
+  phone?: string;
+  email?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+interface Material {
+  id: string;
+  name: string;
+  quantity: number;
+  unit: string;
+  site_id?: string;
+  status: string;
+  critical_level: number;
+  created_at: string;
+  updated_at: string;
+}
+
+interface DailyReport {
+  id: string;
+  site_id: string;
+  reporter_id: string;
+  date: string;
+  weather?: string;
+  work_description: string;
+  materials_used?: any;
+  personnel_count: number;
+  progress_notes?: string;
+  images?: string[];
+  status: string;
+  created_at: string;
+}
+
 const Analytics = () => {
   const { user, loading } = useCustomAuth();
   const navigate = useNavigate();
@@ -65,10 +116,10 @@ const Analytics = () => {
     performanceData: []
   });
 
-  const { data: sites, loading: sitesLoading } = useRealtimeData("sites");
-  const { data: personnel, loading: personnelLoading } = useRealtimeData("personnel");
-  const { data: materials, loading: materialsLoading } = useRealtimeData("materials");
-  const { data: reports, loading: reportsLoading } = useRealtimeData("daily_reports");
+  const { data: sites, loading: sitesLoading } = useRealtimeData<Site>("sites");
+  const { data: personnel, loading: personnelLoading } = useRealtimeData<Personnel>("personnel");
+  const { data: materials, loading: materialsLoading } = useRealtimeData<Material>("materials");
+  const { data: reports, loading: reportsLoading } = useRealtimeData<DailyReport>("daily_reports");
 
   useEffect(() => {
     if (!loading && !user) {
@@ -144,7 +195,7 @@ const Analytics = () => {
     calculateAnalytics();
   }, [sites, personnel, materials, reports, sitesLoading, personnelLoading, materialsLoading, reportsLoading]);
 
-  const generateMonthlyData = (reports: any[], personnel: any[], materials: any[], sites: any[]) => {
+  const generateMonthlyData = (reports: DailyReport[], personnel: Personnel[], materials: Material[], sites: Site[]) => {
     const months = ["Ocak", "Şubat", "Mart", "Nisan", "Mayıs", "Haziran"];
     return months.map((month, index) => {
       const monthReports = reports?.filter(report => 
@@ -161,7 +212,7 @@ const Analytics = () => {
     });
   };
 
-  const generateWeeklyData = (personnel: any[]) => {
+  const generateWeeklyData = (personnel: Personnel[]) => {
     const weeks = ["1. Hafta", "2. Hafta", "3. Hafta", "4. Hafta"];
     return weeks.map(week => {
       const aktif = personnel?.filter(p => p.status === 'Aktif').length || 0;
@@ -172,7 +223,7 @@ const Analytics = () => {
     });
   };
 
-  const generateSiteData = (sites: any[], personnel: any[]) => {
+  const generateSiteData = (sites: Site[], personnel: Personnel[]) => {
     const colors = ["#ef4444", "#3b82f6", "#10b981", "#f59e0b", "#8b5cf6"];
     
     return sites?.map((site, index) => {
@@ -185,7 +236,7 @@ const Analytics = () => {
     }) || [];
   };
 
-  const generateMaterialData = (materials: any[]) => {
+  const generateMaterialData = (materials: Material[]) => {
     const materialGroups = materials?.reduce((acc: any, material) => {
       const group = material.name.split(' ')[0]; // Take first word as group
       if (!acc[group]) {
