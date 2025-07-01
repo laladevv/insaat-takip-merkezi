@@ -26,7 +26,7 @@ const UserManagement = () => {
   });
 
   useEffect(() => {
-    if (!user || user.role !== "Yönetici") {
+    if (!user || !["Yönetici", "Müdür", "Şantiye Şefi"].includes(user.role)) {
       navigate("/dashboard");
       return;
     }
@@ -106,16 +106,33 @@ const UserManagement = () => {
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
   };
 
-  if (!user || user.role !== "Yönetici") {
+  if (!user || !["Yönetici", "Müdür", "Şantiye Şefi"].includes(user.role)) {
     return null;
   }
 
-  const roleOptions = [
-    { value: "Yönetici", label: "Yönetici" },
-    { value: "Şantiye Şefi", label: "Şantiye Şefi" },
-    { value: "Müdür", label: "Müdür" },
-    { value: "Personel", label: "Personel" }
-  ];
+  // Role options based on current user's role
+  const getRoleOptions = () => {
+    if (user.role === "Yönetici") {
+      return [
+        { value: "Yönetici", label: "Yönetici" },
+        { value: "Müdür", label: "Müdür" },
+        { value: "Şantiye Şefi", label: "Şantiye Şefi" },
+        { value: "Personel", label: "Personel" }
+      ];
+    } else if (user.role === "Müdür") {
+      return [
+        { value: "Şantiye Şefi", label: "Şantiye Şefi" },
+        { value: "Personel", label: "Personel" }
+      ];
+    } else if (user.role === "Şantiye Şefi") {
+      return [
+        { value: "Personel", label: "Personel" }
+      ];
+    }
+    return [];
+  };
+
+  const roleOptions = getRoleOptions();
 
   return (
     <SidebarProvider>

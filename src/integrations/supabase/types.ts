@@ -347,6 +347,14 @@ export type Database = {
           success: boolean
         }[]
       }
+      can_create_role: {
+        Args: { creator_role: string; target_role: string }
+        Returns: boolean
+      }
+      get_current_user_role: {
+        Args: Record<PropertyKey, never>
+        Returns: string
+      }
       hash_password: {
         Args: { password: string }
         Returns: string
