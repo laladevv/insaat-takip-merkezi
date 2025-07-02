@@ -25,11 +25,44 @@ const UserManagement = () => {
     role: "Personel"
   });
 
+  // Get available role options based on current user's role
+  const getRoleOptions = () => {
+    if (!user) return [];
+    
+    if (user.role === "Yönetici") {
+      return [
+        { value: "Yönetici", label: "Yönetici" },
+        { value: "Müdür", label: "Müdür" },
+        { value: "Şantiye Şefi", label: "Şantiye Şefi" },
+        { value: "Personel", label: "Personel" }
+      ];
+    } else if (user.role === "Müdür") {
+      return [
+        { value: "Şantiye Şefi", label: "Şantiye Şefi" },
+        { value: "Personel", label: "Personel" }
+      ];
+    } else if (user.role === "Şantiye Şefi") {
+      return [
+        { value: "Personel", label: "Personel" }
+      ];
+    }
+    return [];
+  };
+
+  const roleOptions = getRoleOptions();
+
   useEffect(() => {
     if (!user || !["Yönetici", "Müdür", "Şantiye Şefi"].includes(user.role)) {
       navigate("/dashboard");
       return;
     }
+    
+    // Set default role to the first available option
+    const options = getRoleOptions();
+    if (options.length > 0 && formData.role === "Personel" && !options.find(opt => opt.value === "Personel")) {
+      setFormData(prev => ({ ...prev, role: options[0].value }));
+    }
+    
     fetchUsers();
   }, [user, navigate]);
 
@@ -109,30 +142,6 @@ const UserManagement = () => {
   if (!user || !["Yönetici", "Müdür", "Şantiye Şefi"].includes(user.role)) {
     return null;
   }
-
-  // Role options based on current user's role
-  const getRoleOptions = () => {
-    if (user.role === "Yönetici") {
-      return [
-        { value: "Yönetici", label: "Yönetici" },
-        { value: "Müdür", label: "Müdür" },
-        { value: "Şantiye Şefi", label: "Şantiye Şefi" },
-        { value: "Personel", label: "Personel" }
-      ];
-    } else if (user.role === "Müdür") {
-      return [
-        { value: "Şantiye Şefi", label: "Şantiye Şefi" },
-        { value: "Personel", label: "Personel" }
-      ];
-    } else if (user.role === "Şantiye Şefi") {
-      return [
-        { value: "Personel", label: "Personel" }
-      ];
-    }
-    return [];
-  };
-
-  const roleOptions = getRoleOptions();
 
   return (
     <SidebarProvider>
